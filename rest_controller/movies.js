@@ -71,7 +71,7 @@ const movies = [
 		information: '추억의 영화.',
 		runningTime: '150',
 		director: '토니 스타크',
-		mainActor: '토니',
+		mainActor: '토니 ㅁㅁㅁ',
 		subActors: ['스타크', '토니스']
 	},
 		{
