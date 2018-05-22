@@ -3,7 +3,8 @@ const router = express.Router();
 const courses = [
 	{id:1, text: 'courses1'},
 	{id:2, text: 'courses2'},
-	{id:3, text: 'courses3'}
+	{id:3, text: 'courses3'},
+	{id:4, text: 'courses4'}
 ]
 
 router.use((req, res, next) => next());
