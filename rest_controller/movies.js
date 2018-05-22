@@ -95,13 +95,36 @@ router.get('/:id', (req,res) => {
 	const movie = movies.find(m => m.id === req.params.id);
 	if(!movie) res.status(404).send(`There is No Movie of this ${req.params.id}`);
 })
+router.post('/',(req, res) => {
+	const {error} = valdiateCourse(req.body);
+	if(error) {
+		res.status(400).send(error.details[0].message);
+		return;
+	}
+
+	 const movie = {
+	 	id: movies.length + 1,
+	 	name: req.body.name,
+	 	open: req.body.open,
+	 	runningTime: req.body.runningTime,
+	 	information: req.body.information,
+	 	image: 'http://localhost:5000/static/images/antMan.jpg',
+	 	minAge: '15세',
+		director: '토니 스타크',
+		mainActor: '토니',
+		subActors: ['스타크', '토니스']
+
+	 }
+	 movies.push(movie);
+	 res.send(movie);
+})
 function validateMovie(movie) {
 	const scheme = {
 		name: Joi.string().min(3).required(),
-		minAge: Joi.number().required(),
 		information: Joi.string().min(10).required(),
 		runningTime: Joi.number().required()
 	}
+	//		minAge: Joi.number().required(),
 	return Joi.validate(movie,scheme);
 }
 module.exports = router;
