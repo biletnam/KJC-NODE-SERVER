@@ -1,5 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const Joi = require('joi');
+const multer = require('multer'); // express에 multer모듈 적용 (for 파일업로드)
+const pathModule = require('path');
+var path = process.cwd();
+var envModule = require( path + '/envModule' );
+const storage = multer.diskStorage({
+	destination: function(req, file, cb) {
+		cb(null,'uploads/movie')
+	},
+	filename: function(req,file,cb) {
+		if(file.originalname.indexOf('.') !== -1) {
+			const parsingNameArray = file.originalname.split('.');
+			const extension = parsingNameArray[parsingNameArray.length - 1];
+			cb(null, 'movie' + file.fieldname + Date.now() + '.' + extension);
+		}else {
+			cb(null, 'movie' + file.fieldname + Date.now());
+		}
+	}
+})
+const upload = multer({ storage: storage});
 
 const movies = [
 	{
@@ -95,8 +115,8 @@ router.get('/:id', (req,res) => {
 	const movie = movies.find(m => m.id === req.params.id);
 	if(!movie) res.status(404).send(`There is No Movie of this ${req.params.id}`);
 })
-router.post('/',(req, res) => {
-	const {error} = valdiateCourse(req.body);
+router.post('/',upload.single('image'),(req, res) => {
+	const {error} = validateMovie(req.body);
 	if(error) {
 		res.status(400).send(error.details[0].message);
 		return;
@@ -105,10 +125,10 @@ router.post('/',(req, res) => {
 	 const movie = {
 	 	id: movies.length + 1,
 	 	name: req.body.name,
-	 	open: req.body.open,
+	 	open: req.body.openningDate,
 	 	runningTime: req.body.runningTime,
 	 	information: req.body.information,
-	 	image: 'http://localhost:5000/static/images/antMan.jpg',
+	 	image: req.file.path,
 	 	minAge: '15세',
 		director: '토니 스타크',
 		mainActor: '토니',
@@ -116,13 +136,14 @@ router.post('/',(req, res) => {
 
 	 }
 	 movies.push(movie);
-	 res.send(movie);
+	 res.send(movies);
 })
 function validateMovie(movie) {
 	const scheme = {
 		name: Joi.string().min(3).required(),
-		information: Joi.string().min(10).required(),
-		runningTime: Joi.number().required()
+		information: Joi.string().min(3).required(),
+		runningTime: Joi.number().required(),
+		openingDate: Joi.string().required()
 	}
 	//		minAge: Joi.number().required(),
 	return Joi.validate(movie,scheme);
