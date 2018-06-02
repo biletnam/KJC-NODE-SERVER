@@ -4,6 +4,8 @@ const Joi = require('joi');
 const multer = require('multer'); // express에 multer모듈 적용 (for 파일업로드)
 var path = process.cwd();
 var envModule = require( path + '/envModule' );
+const peopleService = require('./oraclDBService/peopleService');
+
 const storage = multer.diskStorage({
 	destination: function(req, file, cb) {
 		cb(null,'uploads/people')
@@ -26,7 +28,10 @@ const people = [
 ]
 
 router.get('/', (req, res) => {
-	res.send(people);
+    const result = peopleService.findPeople();
+    result.then((data) => {
+        res.send(data);
+	})
 })
 router.post('/',upload.single('imageFile'), (req,res) => {
 	console.log(req.file.path);
