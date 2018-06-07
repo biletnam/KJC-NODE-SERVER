@@ -5,6 +5,7 @@ const multer = require('multer'); // express에 multer모듈 적용 (for 파일�
 const pathModule = require('path');
 var path = process.cwd();
 var envModule = require( path + '/envModule' );
+const movieService = require('./oraclDBService/movieService');
 const storage = multer.diskStorage({
 	destination: function(req, file, cb) {
 		cb(null,'uploads/movie')
@@ -109,41 +110,52 @@ const movies = [
 ]
 
 router.get('/', (req, res) => {
-	res.send(movies);
+	movieService.findAllMovie()
+		.then((result) => {
+			res.send(result);
+		}).catch((error) => {
+		console.log(error);
+	})
 })
 router.get('/:id', (req,res) => {
 	const movie = movies.find(m => m.id === req.params.id);
 	if(!movie) res.status(404).send(`There is No Movie of this ${req.params.id}`);
 })
 router.post('/',upload.single('image'),(req, res) => {
+	console.log(req.body);
 	const {error} = validateMovie(req.body);
 	if(error) {
 		res.status(400).send(error.details[0].message);
 		return;
 	}
-
+	const genres = req.body.genre.join(', ');
 	 const movie = {
-	 	id: movies.length + 1,
-	 	name: req.body.name,
+	 	MOVIE_NAME: req.body.name,
 	 	open: req.body.openningDate,
-	 	runningTime: req.body.runningTime,
-	 	information: req.body.information,
-	 	image: req.file.path,
-	 	minAge: '15세',
-		director: '토니 스타크',
-		mainActor: '토니',
-		subActors: ['스타크', '토니스']
-
+	 	RUNTIME: req.body.runningTime,
+	 	MOVIE_INTRO: req.body.information,
+	 	MOVIE_IMG: req.file.path,
+	 	RATE: req.body.rate,
+		 GENRE: genres,
+		 DIST: req.body.dist,
+		 PEOPLE: req.body.people ? req.body.people.map((p) => JSON.parse(p)) : null
 	 }
-	 movies.push(movie);
-	 res.send(movies);
+     movieService.insertMovie(movie)
+		 .then((rows) => {
+	 		res.send('success');
+		 }).catch((error) => {
+	 	console.log(error);
+	 })
 })
 function validateMovie(movie) {
 	const scheme = {
-		name: Joi.string().min(3).required(),
-		information: Joi.string().min(3).required(),
+		name: Joi.string().min(1).required(),
+		information: Joi.string().min(1).required(),
 		runningTime: Joi.number().required(),
-		openingDate: Joi.string().required()
+		dist: Joi.string().min(1).required(),
+		rate: Joi.number().required(),
+		people: Joi.array(),
+		genre: Joi.array().items(Joi.string())
 	}
 	//		minAge: Joi.number().required(),
 	return Joi.validate(movie,scheme);

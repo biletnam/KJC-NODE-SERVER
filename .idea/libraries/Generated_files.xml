@@ -1,0 +1,43 @@
+<component name="libraryTable">
+  <library name="Generated files" type="javaScript">
+    <properties>
+      <sourceFilesUrls>
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/login.js" />
+        <item url="file://$PROJECT_DIR$/dist/config/oracle-db-config.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/movies.js" />
+        <item url="file://$PROJECT_DIR$/dist/middlewares/auth.js" />
+        <item url="file://$PROJECT_DIR$/dist/commonModule/loginUtil.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/movieService.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/people.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/customerService.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/oracleDBConfig.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/peopleService.js" />
+        <item url="file://$PROJECT_DIR$/dist/commonModule/passwordUtil.js" />
+        <item url="file://$PROJECT_DIR$/dist/commonModule/commonUtil.js" />
+        <item url="file://$PROJECT_DIR$/dist/commonModule/util.js" />
+        <item url="file://$PROJECT_DIR$/dist/index.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/index.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/customer.js" />
+      </sourceFilesUrls>
+    </properties>
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/login.js" />
+      <root url="file://$PROJECT_DIR$/dist/config/oracle-db-config.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/movies.js" />
+      <root url="file://$PROJECT_DIR$/dist/middlewares/auth.js" />
+      <root url="file://$PROJECT_DIR$/dist/commonModule/loginUtil.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/movieService.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/people.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/customerService.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/oracleDBConfig.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/peopleService.js" />
+      <root url="file://$PROJECT_DIR$/dist/commonModule/passwordUtil.js" />
+      <root url="file://$PROJECT_DIR$/dist/commonModule/commonUtil.js" />
+      <root url="file://$PROJECT_DIR$/dist/commonModule/util.js" />
+      <root url="file://$PROJECT_DIR$/dist/index.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/index.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/customer.js" />
+    </CLASSES>
+    <SOURCES />
+  </library>
+</component>

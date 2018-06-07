@@ -22,11 +22,6 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage});
 
-const people = [
-	{id: 1, name: '토니', picture: ''},
-	{id: 2, name: '브라우니', picture: ''}
-]
-
 router.get('/', (req, res) => {
     const result = peopleService.findPeople();
     result.then((data) => {
@@ -35,27 +30,37 @@ router.get('/', (req, res) => {
 })
 router.post('/',upload.single('imageFile'), (req,res) => {
 	console.log(req.file.path);
-	console.log(req.body);
 	const {error} = validatePerson(req.body);
+	console.log(req.body);
 	if(error) {
 		res.status(400).send(error.details[0].message);
 		return;
 	}
-	console.log(req.body);
-	const person = {id: people.length + 1, name: req.body.name, picture: ''};
+	const person = {id: people.length + 1, name: req.body.name, picture: '', role: req.body.role};
 	if(req.file && req.file.path) {
 		person.picture = req.file.path;
 	}
 	if(req.body.information) {
 		person.information = req.body.information;
 	}
-	people.push(person);
-	res.send(people);
+	const personObject = {
+		PER_NAME: person.name,
+		PER_IMG: person.picture,
+		ROLE: person.role
+	}
+	peopleService.insertPerson(personObject)
+		.then((data) => {
+			res.send(data);
+		})
+		.catch((error) => {
+		console.log(error);
+		res.status(400).send('has error');
+	});
 })
 function validatePerson(person) {
 	const scheme = {
-		name: Joi.string().min(3).required(),
-		information: Joi.string().min(1)	
+		name: Joi.string().min(1).required(),
+		role: Joi.string().min(1).required()
 	}
 	//		minAge: Joi.number().required(),
 	return Joi.validate(person,scheme);

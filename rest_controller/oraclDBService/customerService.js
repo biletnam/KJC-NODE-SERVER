@@ -1,52 +1,59 @@
 var oracledb = require('oracledb');
 var dbConfig = require('../../config/oracle-db-config');
-const registerCustomerAPI = () => {
-    const promise = new Promise((resolve, reject) => {
-        oracledb.getConnection(dbConfig, (err, connection) => {
-                if(err) {
-                    console.log('hello Error');
-                    return;
-                }
-                connection.execute("INSERT INTO CUSTOMER VALUES(CUST_SEQUENCE.NEXTVAL, :IS_USER, :PHONE, :NAME)",
-                    {IS_USER: 'Y', PHONE: '01052781809', NAME: '최원표'}, { outFormat: oracledb.OBJECT, autoCommit: false },
-                    (error, result) => {
-                        if(error) {
-                            reject(error);
-                            return 'error is there fucking';
-                        }
-                        console.log("QUERY RESULTS: ");
-                        console.log(result.rows);
-                        resolve(connection);
-            });
-        });
-    });
-    return promise.then((connection) => registerUser(connection));
-}
-const registerUser = (connection) => {
+const commonUtil = require('../../commonModule/commonUtil');
+const registerUser = (userDataObject) => {
     return new Promise((resolve, reject) => {
-        connection.execute("INSERT INTO USER_CUST VALUES(CUST_SEQUENCE.CURRVAL, 'tkfk626', '1234567890', '123', '1','서울 특별시','동대문구', 'tkfk626@naver.com', 10000, '2018-06-02')",
-            [],
-            { outFormat: oracledb.OBJECT, autoCommit: false },(error, result) => {
-                if(error) {
-                    reject(error);
-                    return 'error is there fucking';
+        let conn;
+        this.findCustomerByNameAndPhone(userDataObject.USER_NAME, userDataObject.PHONE)
+            .then((data) => {
+                if(data.length === 0 ) {
+                    oracledb.getConnection(dbConfig.connectConfig)
+                        .then((connection) => {
+                            return connection.execute("INSERT INTO CUSTOMER VALUES(CUSTOMER_SEQ.NEXTVAL, :IS_USER, :PHONE, :USER_NAME)",
+                                {IS_USER: 'Y', PHONE: userDataObject.PHONE, USER_NAME: userDataObject.USER_NAME}, { outFormat: oracledb.OBJECT, autoCommit: false });
+                        }).then((result) => {connection}).then((connection) => {
+                        conn = connection;
+                        return connection.execute("INSERT INTO USERS (USER_ID, ZIP_CODE, ADDR, ADDR_DET, EMAIL, BIRTH, CUST_ID, PASSWORD, SALT) " +
+                            "VALUES(:USER_ID, :ZIP_CODE, :ADDR, :ADDR_DET, :EMAIL, :BIRTH, CUSTOMER_SEQ.CURRVAL , :PASSWORD, :SALT)",
+                            {USER_ID: userDataObject.USER_ID, ZIP_CODE: userDataObject.ZIP_CODE, ADDR: userDataObject.ADDR, ADDR_DET:userDataObject.ADDR_DET
+                                ,EMAIL: userDataObject.EMAIL, BIRTH: userDataObject.BIRTH, PASSWORD: userDataObject.PASSWORD, SALT: userDataObject.SALT},
+                            { outFormat: oracledb.OBJECT, autoCommit: false },(error, result) => {
+                                if(error) {
+                                    reject(error);
+                                    return 'error is there';
+                                }
+                                connection.commit((err) => {
+                                    if(err) {
+                                        console.log(err);
+                                        reject('error while commit', err);
+                                        return;
+                                    }
+                                    resolve('success');
+                                });
+                            })
+                    }).then(() => {if(conn) { return conn.close()}}).catch((error) => {console.log('connectionError' , error)});
                 }
-                console.log("QUERY RESULTS: ");
-                console.log(result.rows);
-                connection.commit((err) => {
-                    if(err) {
-                        console.log(err);
-                        reject('error while commit', err);
-                        return;
-                    }
-                    resolve('success');
-                });
-            });
-    })
+            }).catch((error) => {console.log('find customer Error')});
+
+    }).catch((error) => {console.log('error')});
+}
+const registerNonUser = (nonUserDataObject) => {
+    return new Promise((resolve, reject) => {
+        let conn;
+        oracledb.getConnection(dbConfig.connectConfig)
+            .then((connection) => {
+                return connection.execute("INSERT INTO CUSTOMER VALUES(CUSTOMER_SEQ.NEXTVAL, :IS_USER, :PHONE, :USER_NAME)",
+                    {IS_USER: 'N', PHONE: nonUserDataObject.PHONE, USER_NAME: nonUserDataObject.USER_NAME}, { outFormat: oracledb.OBJECT, autoCommit: true });
+            }).then((result) => {
+            resolve(nonUserDataObject);
+        }).catch((error) => {
+            reject(error);
+        })
+    });
 }
 const findCustomerAPI = () => {
     return new Promise((resolve, reject) => {
-        oracledb.getConnection(dbConfig, (err, connection) => {
+        oracledb.getConnection(dbConfig.connectConfig, (err, connection) => {
             if(err) {
                 console.log('hello Error');
                 return;
@@ -64,7 +71,75 @@ const findCustomerAPI = () => {
         })
     })
 }
+const userIdCheck = (id) => {
+    return new Promise((resolve,reject) => {
+        oracledb.getConnection(dbConfig.connectConfig)
+            .then((connection) => {
+                connection.execute('SELECT 1 FROM USERS WHERE USER_ID = :USER_ID', {USER_ID: id}, { outFormat: oracledb.OBJECT })
+                    .then((result) => {
+                        resolve(result.rows);
+                }).catch((error) => {
+                    console.log('has error while select', error);
+                    reject('error');
+                });
+            }).catch((error) => {
+                console.log('error while Connection', error);
+            })
+    })
+}
+const findUserById = (id) => {
+    let conn;
+    return new Promise((resolve, reject) => {
+            oracledb.getConnection(dbConfig.connectConfig)
+                .then((connection) => {
+                    conn = connection;
+                    return connection.execute('SELECT * FROM USERS U NATURAL JOIN CUSTOMER C WHERE U.USER_ID = :USER_ID', {USER_ID: id}, {outFormat: oracledb.OBJECT})
+                        .then((result) => resolve(result.rows))
+                        .catch((error) => {
+                            console.log('error while findUser', error);
+                            reject('error');
+                        })
+                }).then(() => {if(conn) {conn.close()}}).catch((error) => {console.log('inner promise error', error)});
+        }
+    ).catch((error) => {console.log('error of outer Promise', error)});
+}
+const findUserByCustomerId = (cid) => {
+    let conn;
+    return new Promise((resolve, reject) => {
+            oracledb.getConnection(dbConfig.connectConfig)
+                .then((connection) => {
+                    conn = connection;
+                    return connection.execute('SELECT * FROM USERS U JOIN CUSTOMER C ON(U.CUST_ID = C.CUST_ID) WHERE C.CUST_ID = :CUST_ID', {CUST_ID: cid}, {outFormat: oracledb.OBJECT})
+                        .then((result) => resolve(result.rows))
+                        .catch((error) => {
+                            console.log('error while findUser', error);
+                            reject('error');
+                        })
+                }).then(() => {if(conn) {conn.close()}}).catch((error) => {console.log('inner promise error', error)});
+        }
+    )
+}
+const findCustomerByNameAndPhone = (name, phone) => {
+    let conn;
+    return new Promise((resolve, reject) => {
+        oracledb.getConnection(dbConfig.connectConfig)
+            .then((connection) => {
+                conn = connection;
+                return connection.execute('SELECT * FROM CUSTOMER WHERE USER_NAME = :USER_NAME AND PHONE = :PHONE', {USER_NAME: name, PHONE: phone}, {outFormat: oracledb.OBJECT})
+                    .then((result) => resolve(result.rows))
+                    .catch((error) => {
+                        console.log('error while findCustomer', error);
+                        reject('error');
+                    })
+            }).then(() => {if(conn) {conn.close()}}).catch((error) => {console.log('inner promise error', error)});
+    })
+}
 module.exports = {
-    registerPeople: registerCustomerAPI,
-    findCustomers: findCustomerAPI
+    registerUser: registerUser,
+    findCustomers: findCustomerAPI,
+    userIdCheck: userIdCheck,
+    findUserById: findUserById,
+    findCustomerByNameAndPhone: findCustomerByNameAndPhone,
+    registerNonUser,
+    findUserByCustomerId
 }
