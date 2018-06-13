@@ -8,6 +8,7 @@ var pathModule = require('path');
 var path = process.cwd();
 var envModule = require(path + '/envModule');
 var movieService = require('./oraclDBService/movieService');
+var commonUtil = require('../commonModule/commonUtil');
 var storage = multer.diskStorage({
 	destination: function destination(req, file, cb) {
 		cb(null, 'uploads/movie');
@@ -23,99 +24,49 @@ var storage = multer.diskStorage({
 	}
 });
 var upload = multer({ storage: storage });
-
-var movies = [{
-	id: 1,
-	image: 'http://localhost:5000/static/images/ironman1.jpg',
-	genere: ['공포', '코미디', '로맨스'],
-	minAge: '15세',
-	name: '아이언맨 1',
-	information: '토니스타크의 첫 등장. 마블 10년의 첫걸음을 떼다.',
-	runningTime: '150',
-	director: '토니 스타크',
-	mainActor: '토니',
-	subActors: ['스타크', '토니스']
-}, {
-	id: 2,
-	image: 'http://localhost:5000/static/images/ironman2.jpg',
-	genere: ['공포', '코미디', '로맨스'],
-	minAge: '15세',
-	name: '아이언맨 2',
-	information: '토니스타크의 방심. 이상한 체인 아저씨.',
-	runningTime: '150',
-	director: '토니 스타크',
-	mainActor: '토니',
-	subActors: ['스타크', '토니스']
-}, {
-	id: 3,
-	image: 'http://localhost:5000/static/images/ironman3.jpg',
-	genere: ['공포', '코미디', '로맨스'],
-	minAge: '15세',
-	name: '아이언맨 3',
-	information: '토니스타크의 공포. 아이언맨 다중 등장.',
-	runningTime: '150',
-	director: '토니 스타크',
-	mainActor: '토니',
-	subActors: ['스타크', '토니스']
-}, {
-	id: 4,
-	image: 'http://localhost:5000/static/images/civilWar.jpg',
-	genere: ['공포', '코미디', '로맨스'],
-	minAge: '15세',
-	name: '시빌워',
-	information: '어벤저스 급 출연진 대거 등장',
-	runningTime: '150',
-	director: '토니 스타크',
-	mainActor: '토니',
-	subActors: ['스타크', '토니스']
-}, {
-	id: 5,
-	image: 'http://localhost:5000/static/images/deadFull.jpg',
-	genere: ['공포', '코미디', '로맨스'],
-	minAge: '15세',
-	name: '데드풀',
-	information: '죽지 않는 남자.',
-	runningTime: '150',
-	director: '토니 스타크',
-	mainActor: '토니',
-	subActors: ['스타크', '토니스']
-}, {
-	id: 6,
-	image: 'http://localhost:5000/static/images/welcomeToRural.jpg',
-	genere: ['공포', '코미디', '로맨스'],
-	minAge: '15세',
-	name: '웰컴투 동막골',
-	information: '추억의 영화.',
-	runningTime: '150',
-	director: '토니 스타크',
-	mainActor: '토니 ㅁㅁㅁ',
-	subActors: ['스타크', '토니스']
-}, {
-	id: 7,
-	image: 'http://localhost:5000/static/images/antMan.jpg',
-	genere: ['공포', '코미디', '로맨스'],
-	minAge: '15세',
-	name: '앤트맨',
-	information: '작지만 강한 히어로.',
-	runningTime: '150',
-	director: '토니 스타크',
-	mainActor: '토니',
-	subActors: ['스타크', '토니스']
-}];
+function movieWrapper(rows) {
+	var PERSON_COLUMN = ['PER_NAME', 'PER_IMG', 'CH_NAME', 'IS_MAIN', 'PER_ID'];
+	var object = {};
+	rows.map(function (m) {
+		if (!object[m.MOVIE_ID]) {
+			object[m.MOVIE_ID] = m;
+		}
+		if (!object[m.MOVIE_ID]['PERSON']) {
+			object[m.MOVIE_ID]['PERSON'] = [];
+		}
+		if (m.PER_ID) {
+			object[m.MOVIE_ID]['PERSON'].push({
+				PER_ID: m.PER_ID,
+				PER_NAME: m.PER_NAME,
+				PER_IMG: m.PER_IMG,
+				CH_NAME: m.CH_NAME,
+				IS_MAIN: m.IS_MAIN
+			});
+		}
+	});
+	var exceptObject = Object.keys(object).map(function (key) {
+		return commonUtil.getExceptKeyObject(object[key], PERSON_COLUMN);
+	});
+	return exceptObject;
+}
 
 router.get('/', function (req, res) {
-	movieService.findAllMovie().then(function (result) {
-		res.send(result);
+	movieService.findAllMovie().then(function (rows) {
+		res.send(movieWrapper(rows));
 	}).catch(function (error) {
 		console.log(error);
 	});
 });
-router.get('/:id', function (req, res) {
-	var movie = movies.find(function (m) {
-		return m.id === req.params.id;
+router.get('/playing', function (req, res) {
+	movieService.findAllPlayingMovie().then(function (data) {
+		return res.send(movieWrapper(data));
+	}).catch(function (error) {
+		return res.status(500).send(error);
 	});
-	if (!movie) res.status(404).send('There is No Movie of this ' + req.params.id);
 });
+router.get('/:id', function (req, res) {
+	res.send('not yet');
+}); //TODO 이거 해야 함.
 router.post('/', upload.single('image'), function (req, res) {
 	console.log(req.body);
 
@@ -144,6 +95,21 @@ router.post('/', upload.single('image'), function (req, res) {
 		res.send('success');
 	}).catch(function (error) {
 		console.log(error);
+	});
+});
+
+router.put('/:id/playing/:value', function (req, res) {
+	var movieId = req.params.id;
+	var value = req.params.value;
+
+	if (!movieId || !value) {
+		res.status(405).send('has no parameter');
+		return false;
+	}
+	movieService.moviePlayingChange(movieId, value).then(function (data) {
+		return res.send(data);
+	}).catch(function (error) {
+		return res.status(500).send(error);
 	});
 });
 function validateMovie(movie) {

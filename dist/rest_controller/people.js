@@ -41,7 +41,7 @@ router.post('/', upload.single('imageFile'), function (req, res) {
 		res.status(400).send(error.details[0].message);
 		return;
 	}
-	var person = { id: people.length + 1, name: req.body.name, picture: '', role: req.body.role };
+	var person = { name: req.body.name, picture: '', role: req.body.role };
 	if (req.file && req.file.path) {
 		person.picture = req.file.path;
 	}
