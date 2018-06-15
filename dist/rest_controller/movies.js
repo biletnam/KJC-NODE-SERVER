@@ -78,6 +78,7 @@ router.post('/', upload.single('image'), function (req, res) {
 		return;
 	}
 	var genres = req.body.genre.join(', ');
+	var videoAddr = req.body.videoAddr;
 	var movie = {
 		MOVIE_NAME: req.body.name,
 		open: req.body.openningDate,
@@ -89,7 +90,8 @@ router.post('/', upload.single('image'), function (req, res) {
 		DIST: req.body.dist,
 		PEOPLE: req.body.people ? req.body.people.map(function (p) {
 			return JSON.parse(p);
-		}) : null
+		}) : null,
+		VIDEO_ADDR: videoAddr
 	};
 	movieService.insertMovie(movie).then(function (rows) {
 		res.send('success');
@@ -120,7 +122,8 @@ function validateMovie(movie) {
 		dist: Joi.string().min(1).required(),
 		rate: Joi.number().required(),
 		people: Joi.array(),
-		genre: Joi.array().items(Joi.string())
+		genre: Joi.array().items(Joi.string()),
+		videoAddr: Joi.string()
 		//		minAge: Joi.number().required(),
 	};return Joi.validate(movie, scheme);
 }

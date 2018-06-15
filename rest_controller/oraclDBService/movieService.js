@@ -3,10 +3,11 @@ const oracledb = require('oracledb');
 
 const insertMovieExecute = (movieObject, connection) => {
     console.log(movieObject);
-    const sql = 'INSERT INTO MOVIE (MOVIE_ID, MOVIE_NAME, MOVIE_INTRO, RUNTIME, DIST, MOVIE_IMG, RATE, GENRE) ' +
-        'VALUES(MOVIE_SEQ.NEXTVAL, :MOVIE_NAME, :MOVIE_INTRO, :RUNTIME, :DIST, :MOVIE_IMG, :RATE, :GENRE)';
+    const sql = 'INSERT INTO MOVIE (MOVIE_ID, MOVIE_NAME, MOVIE_INTRO, RUNTIME, DIST, MOVIE_IMG, RATE, GENRE, VIDEO_ADDR) ' +
+        'VALUES(MOVIE_SEQ.NEXTVAL, :MOVIE_NAME, :MOVIE_INTRO, :RUNTIME, :DIST, :MOVIE_IMG, :RATE, :GENRE, :VIDEO_ADDR)';
     return connection.execute(sql,
-        {MOVIE_NAME:movieObject.MOVIE_NAME, MOVIE_INTRO: movieObject.MOVIE_INTRO, RUNTIME: movieObject.RUNTIME, DIST: movieObject.DIST, MOVIE_IMG: movieObject.MOVIE_IMG, RATE: movieObject.RATE, GENRE: movieObject.GENRE}
+        {MOVIE_NAME:movieObject.MOVIE_NAME, MOVIE_INTRO: movieObject.MOVIE_INTRO, RUNTIME: movieObject.RUNTIME, DIST: movieObject.DIST, MOVIE_IMG: movieObject.MOVIE_IMG, RATE: movieObject.RATE, GENRE: movieObject.GENRE,
+            VIDEO_ADDR: movieObject.VIDEO_ADDR}
         ,{autoCommit: false})
         .then((result) => connection)
         .catch((error) => console.log(error));
