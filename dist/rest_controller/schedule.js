@@ -115,7 +115,18 @@ router.put('/public/:sid', function (req, res) {
         return res.status(500).send('fail');
     });
 });
-
+router.put('/sellRate/:scheduleId', function (req, res) {
+    var scheduleId = req.params.scheduleId;
+    if (!scheduleId) {
+        res.status(405).send('no shedule id');
+        return false;
+    }
+    scheduleService.calculateSellRateAndRegister(scheduleId).then(function (data) {
+        return res.send(data);
+    }).catch(function (error) {
+        return res.status(500).send(error);
+    });
+});
 function validateSchedule(schedule) {
     var scheme = {
         date: Joi.string().min(1).required(),

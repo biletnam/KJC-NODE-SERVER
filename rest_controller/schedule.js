@@ -97,7 +97,16 @@ router.put('/public/:sid', (req, res) => {
         .then((data) => res.send('success'))
         .catch((error) => res.status(500).send('fail'));
 })
-
+router.put('/sellRate/:scheduleId', (req, res) => {
+    const scheduleId = req.params.scheduleId;
+    if(!scheduleId){
+        res.status(405).send('no shedule id');
+        return false;
+    }
+    scheduleService.calculateSellRateAndRegister(scheduleId)
+        .then((data) => res.send(data))
+        .catch((error) => res.status(500).send(error));
+})
 function validateSchedule(schedule) {
     const scheme = {
         date: Joi.string().min(1).required(),

@@ -66,7 +66,7 @@ function findAll() {
                 const sql = `SELECT S.SCHED_ID, S.SCHED_NO, S.MOVIE_ID, TO_CHAR(S.SCHED_DATE, 'YYYY-MM-DD') AS SCHED_DATE,
                 TO_CHAR(S.PL_START_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_START_TIME,
                  TO_CHAR(S.PL_END_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_END_TIME,
-                 S.IS_PUBLIC, M.MOVIE_NAME,
+                 S.IS_PUBLIC, M.MOVIE_NAME, S.SELL_RATE,
                  S.BRCH_ID, PT.PT_NAME, PT.PT_ID FROM SCHEDULE S JOIN PLAY_TYPE PT ON(S.PT_ID = PT.PT_ID) JOIN MOVIE M ON(M.MOVIE_ID = S.MOVIE_ID)
                  ORDER BY SCHED_ID`;
                 connection.execute(sql, [] , {outFormat: oracledb.OBJECT}, (err, result) => {
@@ -215,6 +215,36 @@ function toPublic(SCHED_ID) {
             })
     })
 }
+function calculateSellRateAndRegister(SCHED_ID) {
+    return new Promise((resolve, reject) => {
+        bookSeatService.findBookSeatByScheduleId(SCHED_ID)
+            .then((result) => {
+                const bookSeats = result;
+                if(!bookSeats && bookSeats.length === 0) {
+                    reject('there is no seat');
+                    return;
+                }
+                const totalLength = bookSeats.length;
+                const bookedLength = bookSeats.filter((b) => b.TCK_ID ? true  : false).length;
+                const sellRate = Number(bookedLength/ totalLength * 100).toFixed(2);
+                oracledb.getConnection(dbConfig.connectConfig)
+                    .then((connection) => {
+                        connection.execute('UPDATE SCHEDULE SET SELL_RATE = :SELL_RATE WHERE SCHED_ID = :SCHED_ID', {SELL_RATE: sellRate, SCHED_ID: SCHED_ID},
+                            {autoCommit: true}, (err, result) => {
+                                if(err) {
+                                    doRelease(connection);
+                                    reject(err);
+                                    return;
+                                }
+                                doRelease(connection);
+                                resolve('success');
+                            })
+                    }).catch((error) => {console.log(error); reject(error);});
+            }).catch((error) => {
+            reject(error);
+        })
+    })
+}
 function doRelease(connection) {
     return connection.close((err) => {
         if(err) {
@@ -231,5 +261,6 @@ module.exports = {
     findPublicMovieScheduleBetween,
     findAll,
     toPublic,
-    deleteScheduleById
+    deleteScheduleById,
+    calculateSellRateAndRegister
 }
