@@ -186,7 +186,7 @@ function updateTicketTo(ticketId, status) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(dbConfig.connectConfig)
             .then((connection) => {
-                connection.execute(`UPDATE TICKET SET TCK_STATUS = :TCK_STATUS WHERE TCK_ID = :TCK_ID`, {TCK_STATUS: status, TCK_ID: ticketId}, {outFormat: oracledb.OBJECT, autoCommit: false},
+                connection.execute(`UPDATE TICKET SET TCK_STATUS = :TCK_STATUS WHERE TCK_ID = :TCK_ID`, {TCK_STATUS: status, TCK_ID: ticketId}, {outFormat: oracledb.OBJECT, autoCommit: true},
                     (err, result) => {
                         if(err) {
                             console.log(err);
@@ -248,5 +248,6 @@ module.exports = {
     checkAndResetTicketAfterMinute,
     updateTicketStatusToExecute,
     findMeaningTicketByCustomerId,
-    ticketAndBookSeatRefundProcessExecute
+    ticketAndBookSeatRefundProcessExecute,
+    updateTicketTo
 }

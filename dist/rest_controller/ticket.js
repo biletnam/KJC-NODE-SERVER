@@ -72,6 +72,38 @@ router.get('/of/customer', function (req, res) {
         res.status(403).send('login required');
     });
 });
+router.put('/ticketing', function (req, res) {
+    var _validateTicketingTic = validateTicketingTicket(req.body),
+        error = _validateTicketingTic.error;
+
+    if (error) {
+        res.status(400).send(error.details[0].message);
+        return;
+    }
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        return new Promise(function (resolve, reject) {
+            var CUST_ID = decoded._c_id;
+            console.log(CUST_ID);
+            ticketService.findTicketById(req.body.TCK_ID).then(function (data) {
+                var ticket = data[0];
+                console.log(ticket);
+                if (ticket.CUST_ID !== Number(CUST_ID)) {
+                    reject('no Customer Error');
+                    return;
+                }
+                ticketService.updateTicketTo(req.body.TCK_ID, 'T').then(function (data) {
+                    return resolve('success');
+                }).catch(function (error) {
+                    return reject('error');
+                });
+            });
+        });
+    }).then(function (data) {
+        return res.send(data);
+    }).catch(function (error) {
+        return res.status(405).send('login required');
+    });
+});
 router.put('/refund', function (req, res) {
     var _validateRefundTicket = validateRefundTicket(req.body),
         error = _validateRefundTicket.error;
@@ -138,6 +170,12 @@ function validateTicket(ticketObject) {
     };return Joi.validate(ticketObject, scheme);
 }
 function validateRefundTicket(ticketObject) {
+    var scheme = {
+        TCK_ID: Joi.number()
+    };
+    return Joi.validate(ticketObject, scheme);
+}
+function validateTicketingTicket(ticketObject) {
     var scheme = {
         TCK_ID: Joi.number()
     };

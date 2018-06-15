@@ -199,7 +199,7 @@ function updateTicketStatusToExecute(connection, ticketId, status) {
 function updateTicketTo(ticketId, status) {
     return new Promise(function (resolve, reject) {
         oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
-            connection.execute('UPDATE TICKET SET TCK_STATUS = :TCK_STATUS WHERE TCK_ID = :TCK_ID', { TCK_STATUS: status, TCK_ID: ticketId }, { outFormat: oracledb.OBJECT, autoCommit: false }, function (err, result) {
+            connection.execute('UPDATE TICKET SET TCK_STATUS = :TCK_STATUS WHERE TCK_ID = :TCK_ID', { TCK_STATUS: status, TCK_ID: ticketId }, { outFormat: oracledb.OBJECT, autoCommit: true }, function (err, result) {
                 if (err) {
                     console.log(err);
                     doRelease(connection);
@@ -251,6 +251,7 @@ module.exports = {
     checkAndResetTicketAfterMinute: checkAndResetTicketAfterMinute,
     updateTicketStatusToExecute: updateTicketStatusToExecute,
     findMeaningTicketByCustomerId: findMeaningTicketByCustomerId,
-    ticketAndBookSeatRefundProcessExecute: ticketAndBookSeatRefundProcessExecute
+    ticketAndBookSeatRefundProcessExecute: ticketAndBookSeatRefundProcessExecute,
+    updateTicketTo: updateTicketTo
 };
 //# sourceMappingURL=ticketService.js.map
