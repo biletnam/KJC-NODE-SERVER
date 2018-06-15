@@ -5,6 +5,7 @@ var router = express.Router();
 var Joi = require('joi');
 var payMethodService = require('./oraclDBService/payMethodService');
 var commonUtil = require('../commonModule/commonUtil');
+var loginUtil = require('../commonModule/loginUtil');
 router.post('/classify', function (req, res) {
     var _validatePayClassify = validatePayClassify(req.body),
         error = _validatePayClassify.error;
@@ -13,11 +14,20 @@ router.post('/classify', function (req, res) {
         res.status(400).send(error.details[0].message);
         return;
     }
-    var name = req.body.name;
-    payMethodService.insertPayClassify(name).then(function (data) {
-        return res.send(data);
-    }).catch(function (errpr) {
-        return res.status(500).send(error);
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        if (!isDirector) {
+            res.status(403).send('no Director');
+            return;
+        }
+        var name = req.body.name;
+        payMethodService.insertPayClassify(name).then(function (data) {
+            return res.send(data);
+        }).catch(function (error) {
+            return res.status(500).send(error);
+        });
+    }).catch(function (error) {
+        return res.status(403).send(error);
     });
 });
 router.post('/detail', function (req, res) {
@@ -28,12 +38,21 @@ router.post('/detail', function (req, res) {
         res.status(400).send(error.details[0].message);
         return;
     }
-    var detailObject = { PAY_DETAIL_CODE_NAME: req.body.name, PAY_CL_CODE: req.body.payClassifyCode,
-        PAY_MODULE_NAME: req.body.moduleName };
-    payMethodService.insertPayDetail(detailObject).then(function (data) {
-        return res.send(data);
-    }).catch(function (errpr) {
-        return res.status(500).send(error);
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        if (!isDirector) {
+            res.status(403).send('no Director');
+            return;
+        }
+        var detailObject = { PAY_DETAIL_CODE_NAME: req.body.name, PAY_CL_CODE: req.body.payClassifyCode,
+            PAY_MODULE_NAME: req.body.moduleName };
+        payMethodService.insertPayDetail(detailObject).then(function (data) {
+            return res.send(data);
+        }).catch(function (errpr) {
+            return res.status(500).send(error);
+        });
+    }).catch(function (error) {
+        return res.status(403).send(error);
     });
 });
 

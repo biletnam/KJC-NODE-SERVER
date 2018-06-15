@@ -3,6 +3,7 @@ const router = express.Router();
 const Joi = require('joi');
 const scheduleService = require('./oraclDBService/scheduleService');
 const commonUtil = require('../commonModule/commonUtil');
+const loginUtil = require('../commonModule/loginUtil');
 router.post('/', (req,res) => {
     console.log(req.body);
     const {error} = validateSchedule(req.body);
@@ -10,28 +11,36 @@ router.post('/', (req,res) => {
         res.status(400).send(error.details[0].message);
         return;
     }
-    const date = req.body.date.replace(/-/g, '');
-    const startTime = req.body.startTime.replace(/:/g, '');
-    const endTime = req.body.endTime.replace(/:/g, '');
-    const startTimeDate = date+startTime;
-    const endTimeDate = date+endTime;
-    const scheduleObject =
-        {MOVIE_ID: req.body.movieId, SCHED_DATE: date,
-        SCHED_NO: req.body.sequence, PL_START_TIME: startTimeDate,
-        CINEMA_NO: req.body.cinemaNO, BRCH_ID: req.body.branchId,
-        PL_END_TIME: endTimeDate, PT_ID:  req.body.playTypeId};
-
-    scheduleService.findMovieScheduleBetweenStartEnd(scheduleObject.PL_START_TIME, scheduleObject.PL_END_TIME, scheduleObject.BRCH_ID, scheduleObject.CINEMA_NO)
-        .then((row) => {
-            console.log(row);
-            if(row.length > 0) {
-                throw JSON.stringify(row[0]) + 'already Exist';
-            } else {
-                console.log('whiy here');
-                return scheduleService.insertSchedule(scheduleObject);
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('login Required');
+                return;
             }
-        }).then((success) => {res.send('success')})
-        .catch((error) => res.status(500).send(error));
+            const date = req.body.date.replace(/-/g, '');
+            const startTime = req.body.startTime.replace(/:/g, '');
+            const endTime = req.body.endTime.replace(/:/g, '');
+            const startTimeDate = date+startTime;
+            const endTimeDate = date+endTime;
+            const scheduleObject =
+                {MOVIE_ID: req.body.movieId, SCHED_DATE: date,
+                    SCHED_NO: req.body.sequence, PL_START_TIME: startTimeDate,
+                    CINEMA_NO: req.body.cinemaNO, BRCH_ID: req.body.branchId,
+                    PL_END_TIME: endTimeDate, PT_ID:  req.body.playTypeId};
+
+            scheduleService.findMovieScheduleBetweenStartEnd(scheduleObject.PL_START_TIME, scheduleObject.PL_END_TIME, scheduleObject.BRCH_ID, scheduleObject.CINEMA_NO)
+                .then((row) => {
+                    console.log(row);
+                    if(row.length > 0) {
+                        throw JSON.stringify(row[0]) + 'already Exist';
+                    } else {
+                        console.log('whiy here');
+                        return scheduleService.insertSchedule(scheduleObject);
+                    }
+                }).then((success) => {res.send('success')})
+                .catch((error) => res.status(500).send(error));
+        }).catch((error) => res.status(403).send(error));
 })
 
 router.get('/', (req,res) => {
@@ -84,18 +93,37 @@ router.delete('/:id', (req,res) => {
     if(!id) {
         res.status(405).send('no id');
     }
-    scheduleService.deleteScheduleById(id)
-        .then((data) => res.send(data))
-        .catch((error) => res.status(500).send(error));
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('login Required');
+                return;
+            }
+            scheduleService.deleteScheduleById(id)
+                .then((data) => res.send(data))
+                .catch((error) => res.status(500).send(error));
+        }).catch((error) => res.status(403).send(error));
+
 })
 router.put('/public/:sid', (req, res) => {
     const sid = req.params.sid;
     if(!sid) {
         res.status(405).send('no sid');
     }
-    scheduleService.toPublic(sid)
-        .then((data) => res.send('success'))
-        .catch((error) => res.status(500).send('fail'));
+    console.log('here and public');
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            console.log('here');
+            if(!isDirector) {
+                res.status(403).send('login required');
+                return;
+            }
+            scheduleService.toPublic(sid)
+                .then((data) => res.send('success'))
+                .catch((error) => res.status(500).send('fail'));
+        }).catch((error) => res.status(403).send(error));
 })
 router.put('/sellRate/:scheduleId', (req, res) => {
     const scheduleId = req.params.scheduleId;
@@ -103,9 +131,18 @@ router.put('/sellRate/:scheduleId', (req, res) => {
         res.status(405).send('no shedule id');
         return false;
     }
-    scheduleService.calculateSellRateAndRegister(scheduleId)
-        .then((data) => res.send(data))
-        .catch((error) => res.status(500).send(error));
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('login Required');
+                return;
+            }
+            scheduleService.calculateSellRateAndRegister(scheduleId)
+                .then((data) => res.send(data))
+                .catch((error) => res.status(500).send(error));
+        }).catch((error) => res.status(403).send(error));
+
 })
 function validateSchedule(schedule) {
     const scheme = {

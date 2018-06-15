@@ -4,6 +4,7 @@ var express = require('express');
 var router = express.Router();
 var Joi = require('joi');
 var discountService = require('./oraclDBService/discountService');
+var loginUtil = require('../commonModule/loginUtil');
 router.get('/', function (req, res) {
     discountService.findAll().then(function (data) {
         return res.send(data);
@@ -19,13 +20,22 @@ router.post('/', function (req, res) {
         res.status(400).send(error.details[0].message);
         return;
     }
-    var discountObject = { DISC_NAME: req.body.name, DISC_METHOD: req.body.discountMethod,
-        DISC_AMT: req.body.discountAmount };
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        if (!isDirector) {
+            res.status(403).send('no Director');
+            return;
+        }
+        var discountObject = { DISC_NAME: req.body.name, DISC_METHOD: req.body.discountMethod,
+            DISC_AMT: req.body.discountAmount };
 
-    discountService.insertDiscount(discountObject).then(function (data) {
-        return res.send(data);
+        discountService.insertDiscount(discountObject).then(function (data) {
+            return res.send(data);
+        }).catch(function (error) {
+            return res.status(500).send(error);
+        });
     }).catch(function (error) {
-        return res.status(500).send(error);
+        return res.status(403).send(error);
     });
 });
 

@@ -3,16 +3,26 @@ const router = express.Router();
 const Joi = require('joi');
 const payMethodService = require('./oraclDBService/payMethodService');
 const commonUtil = require('../commonModule/commonUtil');
+const loginUtil = require('../commonModule/loginUtil');
 router.post('/classify', (req, res) => {
     const {error} = validatePayClassify(req.body);
     if(error) {
         res.status(400).send(error.details[0].message);
         return;
     }
-    const name = req.body.name;
-    payMethodService.insertPayClassify(name)
-        .then((data) => res.send(data))
-        .catch((errpr) => res.status(500).send(error));
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('no Director');
+                return;
+            }
+            const name = req.body.name;
+            payMethodService.insertPayClassify(name)
+                .then((data) => res.send(data))
+                .catch((error) => res.status(500).send(error));
+        }).catch((error) => res.status(403).send(error));
+
 });
 router.post('/detail', (req, res) => {
     const {error} = validatePayDetail(req.body);
@@ -20,11 +30,19 @@ router.post('/detail', (req, res) => {
         res.status(400).send(error.details[0].message);
         return;
     }
-    const detailObject = {PAY_DETAIL_CODE_NAME: req.body.name, PAY_CL_CODE: req.body.payClassifyCode,
-        PAY_MODULE_NAME: req.body.moduleName};
-    payMethodService.insertPayDetail(detailObject)
-        .then((data) => res.send(data))
-        .catch((errpr) => res.status(500).send(error));
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('no Director');
+                return;
+            }
+            const detailObject = {PAY_DETAIL_CODE_NAME: req.body.name, PAY_CL_CODE: req.body.payClassifyCode,
+                PAY_MODULE_NAME: req.body.moduleName};
+            payMethodService.insertPayDetail(detailObject)
+                .then((data) => res.send(data))
+                .catch((errpr) => res.status(500).send(error));
+        }).catch((error) => res.status(403).send(error));
 });
 
 router.get('/', (req,res) => {

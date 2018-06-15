@@ -5,7 +5,7 @@ var router = express.Router();
 var Joi = require('joi');
 var cinemaService = require('./oraclDBService/cinemaService');
 var commonUtil = require('../commonModule/commonUtil');
-
+var loginUtil = require('../commonModule/loginUtil');
 router.get('/', function (req, res) {
     cinemaService.findAll().then(function (data) {
         res.send(data);
@@ -21,17 +21,26 @@ router.post('/', function (req, res) {
         res.status(400).send(error.details[0].message);
         return;
     }
-    var cinemaObject = {
-        CINEMA_NO: req.body.cinemaNumber,
-        BRCH_ID: req.body.branch,
-        SEAT_TYPE_ID: req.body.seatType,
-        FLOOR: req.body.floor,
-        rows: req.body.rows
-    };
-    cinemaService.insertCinema(cinemaObject).then(function (r) {
-        return res.send('success');
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        if (!isDirector) {
+            res.status(403).send('no Director');
+            return;
+        }
+        var cinemaObject = {
+            CINEMA_NO: req.body.cinemaNumber,
+            BRCH_ID: req.body.branch,
+            SEAT_TYPE_ID: req.body.seatType,
+            FLOOR: req.body.floor,
+            rows: req.body.rows
+        };
+        cinemaService.insertCinema(cinemaObject).then(function (r) {
+            return res.send('success');
+        }).catch(function (error) {
+            return res.status(500).send(error);
+        });
     }).catch(function (error) {
-        return console.log('error');
+        return res.status(403).send(error);
     });
 });
 

@@ -5,6 +5,7 @@ var router = express.Router();
 var Joi = require('joi');
 var scheduleService = require('./oraclDBService/scheduleService');
 var commonUtil = require('../commonModule/commonUtil');
+var loginUtil = require('../commonModule/loginUtil');
 router.post('/', function (req, res) {
     console.log(req.body);
 
@@ -15,28 +16,37 @@ router.post('/', function (req, res) {
         res.status(400).send(error.details[0].message);
         return;
     }
-    var date = req.body.date.replace(/-/g, '');
-    var startTime = req.body.startTime.replace(/:/g, '');
-    var endTime = req.body.endTime.replace(/:/g, '');
-    var startTimeDate = date + startTime;
-    var endTimeDate = date + endTime;
-    var scheduleObject = { MOVIE_ID: req.body.movieId, SCHED_DATE: date,
-        SCHED_NO: req.body.sequence, PL_START_TIME: startTimeDate,
-        CINEMA_NO: req.body.cinemaNO, BRCH_ID: req.body.branchId,
-        PL_END_TIME: endTimeDate, PT_ID: req.body.playTypeId };
-
-    scheduleService.findMovieScheduleBetweenStartEnd(scheduleObject.PL_START_TIME, scheduleObject.PL_END_TIME, scheduleObject.BRCH_ID, scheduleObject.CINEMA_NO).then(function (row) {
-        console.log(row);
-        if (row.length > 0) {
-            throw JSON.stringify(row[0]) + 'already Exist';
-        } else {
-            console.log('whiy here');
-            return scheduleService.insertSchedule(scheduleObject);
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        if (!isDirector) {
+            res.status(403).send('login Required');
+            return;
         }
-    }).then(function (success) {
-        res.send('success');
+        var date = req.body.date.replace(/-/g, '');
+        var startTime = req.body.startTime.replace(/:/g, '');
+        var endTime = req.body.endTime.replace(/:/g, '');
+        var startTimeDate = date + startTime;
+        var endTimeDate = date + endTime;
+        var scheduleObject = { MOVIE_ID: req.body.movieId, SCHED_DATE: date,
+            SCHED_NO: req.body.sequence, PL_START_TIME: startTimeDate,
+            CINEMA_NO: req.body.cinemaNO, BRCH_ID: req.body.branchId,
+            PL_END_TIME: endTimeDate, PT_ID: req.body.playTypeId };
+
+        scheduleService.findMovieScheduleBetweenStartEnd(scheduleObject.PL_START_TIME, scheduleObject.PL_END_TIME, scheduleObject.BRCH_ID, scheduleObject.CINEMA_NO).then(function (row) {
+            console.log(row);
+            if (row.length > 0) {
+                throw JSON.stringify(row[0]) + 'already Exist';
+            } else {
+                console.log('whiy here');
+                return scheduleService.insertSchedule(scheduleObject);
+            }
+        }).then(function (success) {
+            res.send('success');
+        }).catch(function (error) {
+            return res.status(500).send(error);
+        });
     }).catch(function (error) {
-        return res.status(500).send(error);
+        return res.status(403).send(error);
     });
 });
 
@@ -98,10 +108,19 @@ router.delete('/:id', function (req, res) {
     if (!id) {
         res.status(405).send('no id');
     }
-    scheduleService.deleteScheduleById(id).then(function (data) {
-        return res.send(data);
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        if (!isDirector) {
+            res.status(403).send('login Required');
+            return;
+        }
+        scheduleService.deleteScheduleById(id).then(function (data) {
+            return res.send(data);
+        }).catch(function (error) {
+            return res.status(500).send(error);
+        });
     }).catch(function (error) {
-        return res.status(500).send(error);
+        return res.status(403).send(error);
     });
 });
 router.put('/public/:sid', function (req, res) {
@@ -109,10 +128,21 @@ router.put('/public/:sid', function (req, res) {
     if (!sid) {
         res.status(405).send('no sid');
     }
-    scheduleService.toPublic(sid).then(function (data) {
-        return res.send('success');
+    console.log('here and public');
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        console.log('here');
+        if (!isDirector) {
+            res.status(403).send('login required');
+            return;
+        }
+        scheduleService.toPublic(sid).then(function (data) {
+            return res.send('success');
+        }).catch(function (error) {
+            return res.status(500).send('fail');
+        });
     }).catch(function (error) {
-        return res.status(500).send('fail');
+        return res.status(403).send(error);
     });
 });
 router.put('/sellRate/:scheduleId', function (req, res) {
@@ -121,10 +151,19 @@ router.put('/sellRate/:scheduleId', function (req, res) {
         res.status(405).send('no shedule id');
         return false;
     }
-    scheduleService.calculateSellRateAndRegister(scheduleId).then(function (data) {
-        return res.send(data);
+    loginUtil.tokenCheckPromise(req).then(function (decoded) {
+        var isDirector = decoded.isDirector;
+        if (!isDirector) {
+            res.status(403).send('login Required');
+            return;
+        }
+        scheduleService.calculateSellRateAndRegister(scheduleId).then(function (data) {
+            return res.send(data);
+        }).catch(function (error) {
+            return res.status(500).send(error);
+        });
     }).catch(function (error) {
-        return res.status(500).send(error);
+        return res.status(403).send(error);
     });
 });
 function validateSchedule(schedule) {

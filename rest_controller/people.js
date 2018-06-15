@@ -5,7 +5,7 @@ const multer = require('multer'); // express에 multer모듈 적용 (for 파일�
 var path = process.cwd();
 var envModule = require( path + '/envModule' );
 const peopleService = require('./oraclDBService/peopleService');
-
+const loginUtil = require('../commonModule/loginUtil');
 const storage = multer.diskStorage({
 	destination: function(req, file, cb) {
 		cb(null,'uploads/people')
@@ -43,19 +43,28 @@ router.post('/',upload.single('imageFile'), (req,res) => {
 	if(req.body.information) {
 		person.information = req.body.information;
 	}
-	const personObject = {
-		PER_NAME: person.name,
-		PER_IMG: person.picture,
-		ROLE: person.role
-	}
-	peopleService.insertPerson(personObject)
-		.then((data) => {
-			res.send(data);
-		})
-		.catch((error) => {
-		console.log(error);
-		res.status(400).send('has error');
-	});
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('no Director');
+                return;
+            }
+            const personObject = {
+                PER_NAME: person.name,
+                PER_IMG: person.picture,
+                ROLE: person.role
+            }
+            peopleService.insertPerson(personObject)
+                .then((data) => {
+                    res.send(data);
+                })
+                .catch((error) => {
+                    console.log(error);
+                    res.status(400).send('has error');
+                });
+        }).catch((error) => res.status(403).send(error))
+
 })
 function validatePerson(person) {
 	const scheme = {

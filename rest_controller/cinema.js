@@ -3,7 +3,7 @@ const router = express.Router();
 const Joi = require('joi');
 const cinemaService = require('./oraclDBService/cinemaService');
 const commonUtil = require('../commonModule/commonUtil');
-
+const loginUtil = require('../commonModule/loginUtil');
 router.get('/', (req,res) => {
     cinemaService.findAll()
         .then((data) => {
@@ -17,16 +17,24 @@ router.post('/', (req,res) => {
         res.status(400).send(error.details[0].message);
         return;
     }
-    const cinemaObject = {
-        CINEMA_NO: req.body.cinemaNumber,
-        BRCH_ID: req.body.branch,
-        SEAT_TYPE_ID: req.body.seatType,
-        FLOOR: req.body.floor,
-        rows: req.body.rows
-    }
-    cinemaService.insertCinema(cinemaObject)
-        .then((r) => res.send('success'))
-        .catch((error) => console.log('error'));
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('no Director');
+                return;
+            }
+            const cinemaObject = {
+                CINEMA_NO: req.body.cinemaNumber,
+                BRCH_ID: req.body.branch,
+                SEAT_TYPE_ID: req.body.seatType,
+                FLOOR: req.body.floor,
+                rows: req.body.rows
+            }
+            cinemaService.insertCinema(cinemaObject)
+                .then((r) => res.send('success'))
+                .catch((error) => res.status(500).send(error));
+        }).catch((error) => res.status(403).send(error))
 });
 
 function validateCinema(cinema) {

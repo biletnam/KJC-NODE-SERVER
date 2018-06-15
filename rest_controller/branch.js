@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const branchService = require('./oraclDBService/branchService');
 const Joi = require('joi');
-
+const loginUtil = require('../commonModule/loginUtil');
 router.get('/', (req, res) => {
     console.log('get Request');
     branchService.findAllBranch().then((data) => {
@@ -15,15 +15,23 @@ router.post('/', (req, res) => {
         res.status(400).send(error.details[0].message);
         return;
     }
-    const branchObject = {
-        BRANCH_NAME: req.body.name,
-        ZIP_CODE: req.body.zipCode,
-        ADDR: req.body.address,
-        ADDR_DET: req.body.address_detail
-    }
-    branchService.insertBranch(branchObject)
-        .then((result) => {console.log('success'); res.send(result);})
-        .catch((error) => {res.status(400).send('error while insert1')});
+    loginUtil.tokenCheckPromise(req)
+        .then((decoded) => {
+            const isDirector = decoded.isDirector;
+            if(!isDirector) {
+                res.status(403).send('no director');
+                return;
+            }
+            const branchObject = {
+                BRANCH_NAME: req.body.name,
+                ZIP_CODE: req.body.zipCode,
+                ADDR: req.body.address,
+                ADDR_DET: req.body.address_detail
+            }
+            branchService.insertBranch(branchObject)
+                .then((result) => {console.log('success'); res.send(result);})
+                .catch((error) => {res.status(400).send('error while insert1')});
+        }).catch((error) => res.status(403).send(error))
 })
 
 function validateBranch(branch) {

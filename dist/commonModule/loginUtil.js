@@ -5,11 +5,13 @@ var secret = require('../config/oracle-db-config').secret;
 
 var getToken = function getToken(userData) {
     var p = new Promise(function (resolve, reject) {
+        var isDIrector = userData.IS_USER === 'D' ? true : false;
         jwt.sign({
             _id: userData.USER_ID,
             username: userData.USER_NAME,
             _c_id: userData.CUST_ID,
-            isUser: true
+            isUser: true,
+            isDirector: isDIrector
         }, secret, {
             expiresIn: '7d',
             issuer: 'localhost'
