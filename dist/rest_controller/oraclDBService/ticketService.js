@@ -15,6 +15,14 @@ function deleteTicketById(connection, ticketId) {
         return connection;
     });
 }
+function deleteTicketByIds(connection, ticketIds) {
+    var sql = 'DELETE FROM TICKET WHERE TCK_ID IN (' + ticketIds.map(function (s, i) {
+        return ':' + i;
+    }).join(', ') + ')';
+    return connection.execute(sql, ticketIds, { autoCommit: false }).then(function (result) {
+        return connection;
+    });
+}
 function resetBookAndTicket(ticketId) {
     return new Promise(function (resolve, reject) {
         oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
@@ -56,6 +64,70 @@ function checkAndResetTicket(ticketId) {
         }).catch(function (error) {
             console.log(error);
         });
+    }).catch(function (error) {
+        return console.log(error);
+    });
+}
+function findCStatusTicketForSystem() {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            connection.execute('SELECT * FROM TICKET WHERE TCK_STATUS = \'C\'', [], { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
+            });
+        });
+    });
+}
+function resetBookAndTickets(ticketIds) {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            console.log('here');
+            return bookSeatService.resetBookSeatTickets(connection, ticketIds);
+        }).then(function (connection) {
+            console.log('we are here');
+            return deleteTicketByIds(connection, ticketIds);
+        }).then(function (connection) {
+            connection.commit(function (err) {
+                if (err) {
+                    doRelease(connection);
+                    reject(err);
+                    throw err;
+                }
+                doRelease(connection);
+                resolve('success');
+            });
+        }).catch(function (error) {
+            return console.log(error);
+        });
+    });
+}
+function checkAndResetTicketAfterMinute(minute) {
+    return new Promise(function (resolve, reject) {
+        findCStatusTicketForSystem().then(function (data) {
+            var now = new Date();
+            var needToDeleteTicketIds = data.filter(function (d) {
+                return now.getTime() - d.BOOK_DATE.getTime() > minute * 60 * 1000;
+            }).map(function (d) {
+                return d.TCK_ID;
+            });
+            if (needToDeleteTicketIds.length > 0) {
+                resetBookAndTickets(needToDeleteTicketIds).then(function (data) {
+                    resolve(data);
+                }).catch(function (error) {
+                    reject(error);
+                });
+            } else {
+                reject('none');
+            }
+        }).catch(function (error) {
+            console.log(error);
+        });
     });
 }
 function findTicketById(ticketId) {
@@ -63,7 +135,7 @@ function findTicketById(ticketId) {
         console.log(ticketId);
         console.log(new Date());
         oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
-            connection.execute('SELECT TCK_ID, TCK_STATUS, TO_CHAR(BOOK_DATE, \'YYYY-MM-DD"T"HH24:MI\') AS BOOK_DATE, TCK_PRICE, BOOK_SEAT_CNT, SCHED_ID, SEAT_NAME FROM TICKET WHERE TCK_ID = :TCK_ID', { TCK_ID: ticketId }, { outFormat: oracledb.OBJECT }, function (err, result) {
+            connection.execute('SELECT CUST_ID, TCK_ID, TCK_STATUS, TO_CHAR(BOOK_DATE, \'YYYY-MM-DD"T"HH24:MI\') AS BOOK_DATE, TCK_PRICE, BOOK_SEAT_CNT, SCHED_ID, SEAT_NAME FROM TICKET WHERE TCK_ID = :TCK_ID', { TCK_ID: ticketId }, { outFormat: oracledb.OBJECT }, function (err, result) {
                 if (err) {
                     console.log(err);
                     doRelease(connection);
@@ -79,6 +151,7 @@ function findTicketById(ticketId) {
 function createTicket(ticketObject) {
     var gConn = void 0;
     return new Promise(function (resolve, reject) {
+        var ticketId = void 0;
         oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
             return insertTicket(connection, ticketObject).then(function (result) {
                 gConn = connection;
@@ -91,10 +164,12 @@ function createTicket(ticketObject) {
                 setTimeout(function () {
                     checkAndResetTicket(TCK_ID);
                 }, 190000);
-                return { connection: connection, TCK_ID: TCK_ID };
-            }).then(function (connectionObject) {
-                var conn = connectionObject.connection;
-                return bookSeatService.updateBookSeatTicketAndBookable(conn, connectionObject.TCK_ID, ticketObject);
+                ticketId = TCK_ID;
+                console.log('' + ticketId);
+                return connection;
+            }).then(function (connection) {
+                console.log(ticketId);
+                return bookSeatService.updateBookSeatTicketAndBookable(connection, ticketId, ticketObject);
             }).then(function (connection) {
                 connection.commit(function (error) {
                     if (error) {
@@ -103,7 +178,8 @@ function createTicket(ticketObject) {
                         throw 'error';
                     }
                     doRelease(connection);
-                    resolve('success');
+                    console.log(ticketId);
+                    resolve(ticketId);
                 });
             }).catch(function (error) {
                 if (gConn) {
@@ -113,6 +189,51 @@ function createTicket(ticketObject) {
         }).catch(function (error) {
             console.log(error);
         });
+    });
+}
+function updateTicketStatusToExecute(connection, ticketId, status) {
+    return connection.execute('UPDATE TICKET SET TCK_STATUS = :TCK_STATUS WHERE TCK_ID = :TCK_ID', { TCK_STATUS: status, TCK_ID: ticketId }, { outFormat: oracledb.OBJECT, autoCommit: false }).then(function (result) {
+        return connection;
+    });
+}
+function updateTicketTo(ticketId, status) {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            connection.execute('UPDATE TICKET SET TCK_STATUS = :TCK_STATUS WHERE TCK_ID = :TCK_ID', { TCK_STATUS: status, TCK_ID: ticketId }, { outFormat: oracledb.OBJECT, autoCommit: false }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
+            });
+        });
+    });
+}
+function findMeaningTicketByCustomerId(customerId) {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            console.log(customerId);
+            connection.execute('SELECT T.TCK_ID, T.TCK_STATUS, TO_CHAR(T.BOOK_DATE, \'YYYY-MM-DD"T"HH24:MI\') AS BOOK_DATE,\n                  T.SEAT_NAME, P.FLOOR, P.BRCH_NAME,\n                  TO_CHAR(P.PL_START_TIME, \'YYYY-MM-DD"T"HH24:MI\') AS PL_START_TIME,\n                  TO_CHAR(P.PL_END_TIME, \'YYYY-MM-DD"T"HH24:MI\') AS PL_END_TIME,\n                  P.CINEMA_NO, P.MOVIE_NAME, P.PT_NAME\n                  FROM TICKET T JOIN PLAY_INFO P ON(T.SCHED_ID = P.SCHED_ID) WHERE T.CUST_ID = :CUST_ID AND T.TCK_STATUS != \'C\'\n                  ORDER BY T.BOOK_DATE', { CUST_ID: Number(customerId) }, { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
+            });
+        });
+    });
+}
+function ticketAndBookSeatRefundProcessExecute(connection, TCK_ID) {
+    return connection.execute('UPDATE TICKET SET TCK_STATUS = \'R\' WHERE TCK_ID = :TCK_ID', { TCK_ID: TCK_ID }, { autoCommit: false }).then(function (result) {
+        return connection;
+    }).then(function (connection) {
+        return bookSeatService.resetBookSeatTicket(connection, TCK_ID);
     });
 }
 function doRelease(connection) {
@@ -126,6 +247,10 @@ function doRelease(connection) {
 module.exports = {
     createTicket: createTicket,
     findTicketById: findTicketById,
-    checkAndResetTicket: checkAndResetTicket
+    checkAndResetTicket: checkAndResetTicket,
+    checkAndResetTicketAfterMinute: checkAndResetTicketAfterMinute,
+    updateTicketStatusToExecute: updateTicketStatusToExecute,
+    findMeaningTicketByCustomerId: findMeaningTicketByCustomerId,
+    ticketAndBookSeatRefundProcessExecute: ticketAndBookSeatRefundProcessExecute
 };
 //# sourceMappingURL=ticketService.js.map

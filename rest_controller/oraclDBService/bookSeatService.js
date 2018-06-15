@@ -71,6 +71,11 @@ function resetBookSeatTicket(connection,ticketId) {
     return connection.execute(sql,[], {autoCommit: false, outFormat: oracledb.OBJECT}).then((result) => connection);
 }
 
+function resetBookSeatTickets(connection,ticketIds) {
+    const sql = `UPDATE BOOK_SEAT SET TCK_ID = NULL WHERE TCK_ID IN (${ticketIds.map((s,i) => ':'+ i)})`;
+    return connection.execute(sql,ticketIds, {autoCommit: false, outFormat: oracledb.OBJECT}).then((result) => connection);
+}
+
 function deleteBookSeatByScheduleIdExecute(connection, schedId) {
     return connection.execute('DELETE FROM BOOK_SEAT WHERE SCHED_ID = :SCHED_ID',{SCHED_ID: schedId}, {autoCommit: false})
         .then((result) => connection);
@@ -89,5 +94,6 @@ module.exports = {
     findBookSeatByScheduleIdAndSeatNames : findBookSeatByScheduleIdAndSeatNames,
     updateBookSeatTicketAndBookable,
     resetBookSeatTicket,
+    resetBookSeatTickets,
     deleteBookSeatByScheduleIdExecute
 }

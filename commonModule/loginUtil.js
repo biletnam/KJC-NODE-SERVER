@@ -21,7 +21,7 @@ const getToken = (userData) => {
 const getTokenForNonUser = (nonUserData) => {
     const p = new Promise((resolve, reject) => {
         jwt.sign({
-            name: nonUserData.USER_NAME,
+            username: nonUserData.USER_NAME,
             phone: nonUserData.PHONE,
             _c_id: nonUserData.CUST_ID,
             isUser: false

@@ -40,6 +40,35 @@ function findAll() {
         });
     });
 }
+function findByCode(Code) {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            connection.execute('SELECT * FROM DISCOUNT WHERE DISC_CODE = :DISC_CODE', { DISC_CODE: Code }, { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject('error');
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
+            });
+        }).catch(function (error) {
+            console.log(error);
+        });
+    });
+}
+
+function calculateDiscountPrice(price, method, amount) {
+    console.log(price);
+    console.log(method);
+    console.log(amount);
+    if (method === '%') {
+        return Math.floor(Number(price) * Number(amount) / 100);
+    } else if (method === '-') {
+        return Number(amount);
+    }
+}
 function doRelease(connection) {
     return connection.close(function (err) {
         if (err) {
@@ -50,6 +79,8 @@ function doRelease(connection) {
 
 module.exports = {
     insertDiscount: insertDiscount,
-    findAll: findAll
+    findAll: findAll,
+    findByCode: findByCode,
+    calculateDiscountPrice: calculateDiscountPrice
 };
 //# sourceMappingURL=discountService.js.map

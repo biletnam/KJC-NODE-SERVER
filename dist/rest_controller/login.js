@@ -17,9 +17,11 @@ router.get('/check', function (req, res) {
             message: 'not logged in'
         });
     }
+    console.log(token);
 
     // create a promise that decodes the token
     var p = new Promise(function (resolve, reject) {
+        console.log('here you promise');
         jwt.verify(token, req.app.get('jwt-secret'), function (err, decoded) {
             console.log(decoded);
             if (err) reject(err);
@@ -29,13 +31,22 @@ router.get('/check', function (req, res) {
 
     // if token is valid, it will respond with its info
     var respond = function respond(token) {
-        res.json({
-            success: true,
-            info: {
-                id: token._id,
-                name: token.username
-            }
-        });
+        if (token.isUser) {
+            res.json({
+                success: true,
+                info: {
+                    id: token._id,
+                    name: token.username
+                }
+            });
+        } else {
+            res.json({
+                success: true,
+                info: {
+                    name: token.username
+                }
+            });
+        }
     };
 
     // if it has failed to verify, it will return an error message
@@ -81,11 +92,13 @@ var tokenRespondForNonUser = function tokenRespondForNonUser(req, res, customer)
 };
 var registerNonUserCustomerAndLoginRespond = function registerNonUserCustomerAndLoginRespond(req, res) {
     customerService.registerNonUser({ USER_NAME: req.body.name, PHONE: req.body.phone }).then(function (nonUserObject) {
-        customerService.findCustomerByNameAndPhone(nonUserObject.USER_NAME, nonUserObject.PHONE).then(function (data) {
+        return customerService.findNonUserCustomerByNameAndPhone(nonUserObject.USER_NAME, nonUserObject.PHONE).then(function (data) {
             if (data.length > 0) {
                 tokenRespondForNonUser(req, res, data[0]);
+            } else {
+                res.status(500).send('error');
             }
-        }).catch(commonUtil.defaultPromiseErrorHandler);
+        });
     }).catch(commonUtil.defaultPromiseErrorHandler);
 };
 router.post('/nonUser', function (req, res) {
@@ -96,15 +109,12 @@ router.post('/nonUser', function (req, res) {
         return;
     }
     var customer = void 0;
-    customerService.findCustomerByNameAndPhone(body.name, body.phone).then(function (data) {
+    console.log(req.body.name, req.body.phone);
+    customerService.findNonUserCustomerByNameAndPhone(body.name, body.phone).then(function (data) {
         if (data.length > 0) {
             customer = data[0];
-            if (customer.IS_USER === 'Y') {
-                res.status(405).send('이미 회원가입이 돼있는 회원입니다.');
-            } else {
-                tokenRespondForNonUser(req, res, customer);
-                return;
-            }
+            tokenRespondForNonUser(req, res, customer);
+            return;
         } else {
             registerNonUserCustomerAndLoginRespond(req, res);
             return;
@@ -122,7 +132,9 @@ router.get('/info', function (req, res) {
     console.log('get Info Request');
     loginUtil.tokenCheckPromise(req).then(function (decoded) {
         if (!decoded.isUser) {
-            res.status(405).send('this customer is not user');
+            console.log('non User here');
+            res.send({ IS_USER: 'N' });
+            return;
         }
         var CUST_ID = decoded._c_id;
         customerService.findUserByCustomerId(CUST_ID).then(function (data) {

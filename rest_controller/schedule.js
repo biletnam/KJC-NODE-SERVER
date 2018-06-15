@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
 const scheduleService = require('./oraclDBService/scheduleService');
+const commonUtil = require('../commonModule/commonUtil');
 router.post('/', (req,res) => {
     console.log(req.body);
     const {error} = validateSchedule(req.body);
@@ -58,6 +59,23 @@ router.get('/movie/:movieId/date/:date/:date2', (req,res) => {
         return false;
     }
     scheduleService.findMovieScheduleBetween(movieId, date1, date2)
+        .then((data) => res.send(data))
+        .catch((error) => res.status(500).send(error));
+})
+router.get('/movie/:movieId/due/:due', (req, res) => {
+    const due = req.params.due;
+    const movieId = req.params.movieId;
+    if(isNaN(due) || isNaN(movieId)) {
+        res.status(405).send('not support date Type, ex)20120930');
+        return false;
+    }
+    const today = new Date();
+    const fromDateString = commonUtil.toOracleISOTimeString(today);
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + Number(due));
+    dueDate.setHours(0,0,0,0);
+    const dueDateString = commonUtil.toOracleISOTimeString(dueDate);
+    scheduleService.findPublicMovieScheduleBetween(movieId, fromDateString, dueDateString)
         .then((data) => res.send(data))
         .catch((error) => res.status(500).send(error));
 })

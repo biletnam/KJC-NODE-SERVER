@@ -81,6 +81,15 @@ function resetBookSeatTicket(connection, ticketId) {
     });
 }
 
+function resetBookSeatTickets(connection, ticketIds) {
+    var sql = 'UPDATE BOOK_SEAT SET TCK_ID = NULL WHERE TCK_ID IN (' + ticketIds.map(function (s, i) {
+        return ':' + i;
+    }) + ')';
+    return connection.execute(sql, ticketIds, { autoCommit: false, outFormat: oracledb.OBJECT }).then(function (result) {
+        return connection;
+    });
+}
+
 function deleteBookSeatByScheduleIdExecute(connection, schedId) {
     return connection.execute('DELETE FROM BOOK_SEAT WHERE SCHED_ID = :SCHED_ID', { SCHED_ID: schedId }, { autoCommit: false }).then(function (result) {
         return connection;
@@ -100,6 +109,7 @@ module.exports = {
     findBookSeatByScheduleIdAndSeatNames: findBookSeatByScheduleIdAndSeatNames,
     updateBookSeatTicketAndBookable: updateBookSeatTicketAndBookable,
     resetBookSeatTicket: resetBookSeatTicket,
+    resetBookSeatTickets: resetBookSeatTickets,
     deleteBookSeatByScheduleIdExecute: deleteBookSeatByScheduleIdExecute
 };
 //# sourceMappingURL=bookSeatService.js.map

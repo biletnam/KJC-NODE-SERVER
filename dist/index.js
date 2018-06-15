@@ -6,9 +6,10 @@ var bodyParser = require('body-parser');
 var app = express();
 var cors = require('cors');
 var dbConfig = require('./config/oracle-db-config');
-
+var startConfig = require('./config/server-start-setting');
 var restController = require('./rest_controller');
 
+startConfig.startSetting();
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());

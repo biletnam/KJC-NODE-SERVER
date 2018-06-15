@@ -19,6 +19,7 @@ var book_seat = require('./book_seat');
 var ticket = require('./ticket');
 var payMethod = require('./payMethod');
 var discount = require('./discount');
+var payHistory = require('./payHistory');
 router.use('/api/customer', customers);
 router.use('/api/courses', courses);
 router.use('/api/movies', movies);
@@ -35,5 +36,6 @@ router.use('/api/book_seat', book_seat);
 router.use('/api/ticket', ticket);
 router.use('/api/payMethod', payMethod);
 router.use('/api/discount', discount);
+router.use('/api/payHistory', payHistory);
 module.exports = router;
 //# sourceMappingURL=index.js.map

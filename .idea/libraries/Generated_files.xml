@@ -6,6 +6,8 @@
         <item url="file://$PROJECT_DIR$/dist/rest_controller/index.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/customer.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/price/seatTypeService.js" />
+        <item url="file://$PROJECT_DIR$/dist/config/when-server-start-config.js" />
+        <item url="file://$PROJECT_DIR$/dist/config/server-start-setting.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/price/playTypeService.js" />
         <item url="file://$PROJECT_DIR$/dist/dist/rest_controller/oraclDBService/customerService.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/payMethodService.js" />
@@ -22,7 +24,9 @@
         <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/scheduleService.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/playInfoService.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/ticket.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/payHistoryService.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/bookSeatService.js" />
+        <item url="file://$PROJECT_DIR$/dist/rest_controller/payHistory.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/login.js" />
         <item url="file://$PROJECT_DIR$/dist/config/oracle-db-config.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/branch.js" />
@@ -37,8 +41,8 @@
         <item url="file://$PROJECT_DIR$/dist/rest_controller/price/seatType.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/peopleService.js" />
         <item url="file://$PROJECT_DIR$/dist/commonModule/passwordUtil.js" />
-        <item url="file://$PROJECT_DIR$/dist/commonModule/commonUtil.js" />
         <item url="file://$PROJECT_DIR$/dist/rest_controller/price/playType.js" />
+        <item url="file://$PROJECT_DIR$/dist/commonModule/commonUtil.js" />
         <item url="file://$PROJECT_DIR$/dist/commonModule/util.js" />
       </sourceFilesUrls>
     </properties>
@@ -47,6 +51,8 @@
       <root url="file://$PROJECT_DIR$/dist/rest_controller/index.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/customer.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/price/seatTypeService.js" />
+      <root url="file://$PROJECT_DIR$/dist/config/when-server-start-config.js" />
+      <root url="file://$PROJECT_DIR$/dist/config/server-start-setting.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/price/playTypeService.js" />
       <root url="file://$PROJECT_DIR$/dist/dist/rest_controller/oraclDBService/customerService.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/payMethodService.js" />
@@ -63,7 +69,9 @@
       <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/scheduleService.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/playInfoService.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/ticket.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/payHistoryService.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/bookSeatService.js" />
+      <root url="file://$PROJECT_DIR$/dist/rest_controller/payHistory.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/login.js" />
       <root url="file://$PROJECT_DIR$/dist/config/oracle-db-config.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/branch.js" />
@@ -78,8 +86,8 @@
       <root url="file://$PROJECT_DIR$/dist/rest_controller/price/seatType.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/oraclDBService/peopleService.js" />
       <root url="file://$PROJECT_DIR$/dist/commonModule/passwordUtil.js" />
-      <root url="file://$PROJECT_DIR$/dist/commonModule/commonUtil.js" />
       <root url="file://$PROJECT_DIR$/dist/rest_controller/price/playType.js" />
+      <root url="file://$PROJECT_DIR$/dist/commonModule/commonUtil.js" />
       <root url="file://$PROJECT_DIR$/dist/commonModule/util.js" />
     </CLASSES>
     <SOURCES />

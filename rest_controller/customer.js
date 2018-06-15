@@ -17,6 +17,11 @@ router.get('/', (req, res) => {
         res.send(data);
     })
 })
+router.get('/users', (req, res) => {
+    customerService.findAllUser()
+        .then((data) => res.send(data))
+        .catch((error) => res.status(500).send(error));
+})
 router.post('/user', (req,res) => {
     const {error} = validateUser(req.body);
     if(error) {

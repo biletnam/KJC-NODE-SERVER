@@ -67,7 +67,8 @@ function findAll() {
                 TO_CHAR(S.PL_START_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_START_TIME,
                  TO_CHAR(S.PL_END_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_END_TIME,
                  S.IS_PUBLIC, M.MOVIE_NAME,
-                 S.BRCH_ID, PT.PT_NAME, PT.PT_ID FROM SCHEDULE S JOIN PLAY_TYPE PT ON(S.PT_ID = PT.PT_ID) JOIN MOVIE M ON(M.MOVIE_ID = S.MOVIE_ID)`;
+                 S.BRCH_ID, PT.PT_NAME, PT.PT_ID FROM SCHEDULE S JOIN PLAY_TYPE PT ON(S.PT_ID = PT.PT_ID) JOIN MOVIE M ON(M.MOVIE_ID = S.MOVIE_ID)
+                 ORDER BY SCHED_ID`;
                 connection.execute(sql, [] , {outFormat: oracledb.OBJECT}, (err, result) => {
                     if(err) {
                         console.log(err);
@@ -170,6 +171,32 @@ function findMovieScheduleBetween(movieId, date1, date2) {
             })
     })
 }
+function findPublicMovieScheduleBetween(movieId, date1, date2) {
+    return new Promise((resolve, reject) => {
+        console.log(date1, date2);
+        oracledb.getConnection(dbConfig.connectConfig)
+            .then((connection) => {
+                const sql = `SELECT S.SCHED_ID, S.MOVIE_ID, S.SCHED_NO, TO_CHAR(S.SCHED_DATE, 'YYYY-MM-DD') AS SCHED_DATE,
+                TO_CHAR(S.PL_START_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_START_TIME,
+                TO_CHAR(S.PL_END_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_END_TIME,
+                S.CINEMA_NO, S.BRCH_ID, PT.PT_NAME, PT.PT_PRICE, PT.PT_ID
+                FROM SCHEDULE S JOIN PLAY_TYPE PT ON(S.PT_ID = PT.PT_ID)
+                WHERE MOVIE_ID = :MOVIE_ID AND IS_PUBLIC = 'Y' 
+                AND PL_START_TIME BETWEEN  TO_DATE(:SCHED_DATE_1, 'YYYYMMDDHH24MI') AND TO_DATE(:SCHED_DATE_2, 'YYYYMMDDHH24MI')
+                ORDER BY PL_START_TIME`;
+                connection.execute(sql, {MOVIE_ID: movieId, SCHED_DATE_1: date1, SCHED_DATE_2: date2}, {outFormat: oracledb.OBJECT}, (err, result) => {
+                    if(err) {
+                        console.log(err);
+                        doRelease(connection);
+                        reject('error');
+                        return;
+                    }
+                    doRelease(connection);
+                    resolve(result.rows);
+                })
+            })
+    })
+}
 function toPublic(SCHED_ID) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(dbConfig.connectConfig)
@@ -201,6 +228,7 @@ module.exports = {
     findScheduleByDate,
     findMovieScheduleBetween,
     findMovieScheduleBetweenStartEnd,
+    findPublicMovieScheduleBetween,
     findAll,
     toPublic,
     deleteScheduleById

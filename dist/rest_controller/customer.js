@@ -19,6 +19,13 @@ router.get('/', function (req, res) {
         res.send(data);
     });
 });
+router.get('/users', function (req, res) {
+    customerService.findAllUser().then(function (data) {
+        return res.send(data);
+    }).catch(function (error) {
+        return res.status(500).send(error);
+    });
+});
 router.post('/user', function (req, res) {
     var _validateUser = validateUser(req.body),
         error = _validateUser.error;

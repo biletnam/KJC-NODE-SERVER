@@ -6,8 +6,6 @@ var commonUtil = require('../../commonModule/commonUtil');
 function insertCustomerStep(connection, userDataObject, resolve, reject) {
     return connection.execute("INSERT INTO CUSTOMER VALUES(CUSTOMER_SEQ.NEXTVAL, :IS_USER, :PHONE, :USER_NAME)", { IS_USER: 'Y', PHONE: userDataObject.PHONE, USER_NAME: userDataObject.USER_NAME }, { outFormat: oracledb.OBJECT, autoCommit: false }).then(function (result) {
         return connection;
-    }).catch(function (error) {
-        return console.log(error);
     });
 }
 function insertUserStep(connection, userDataObject, resolve, reject) {
@@ -20,9 +18,11 @@ function insertUserStep(connection, userDataObject, resolve, reject) {
         connection.commit(function (err) {
             if (err) {
                 console.log('error step', err);
+                doRelease(connection);
                 reject('error while commit', err);
                 return;
             }
+            doRelease(connection);
             resolve('success');
         });
     });
@@ -33,15 +33,18 @@ function registerUser(userDataObject) {
         findCustomerInfoOfUserByNameAndPhone(userDataObject.USER_NAME, userDataObject.PHONE).then(function (data) {
             if (data.length === 0) {
                 oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
-                    var conn = connection;
+                    conn = connection;
                     return insertCustomerStep(connection, userDataObject, resolve, reject);
                 }).then(function (connection) {
                     return insertUserStep(connection, userDataObject, resolve, reject);
-                }).then(function () {
+                }).catch(function (error) {
+                    console.log(error);
                     if (conn) {
-                        return conn.close();
+                        doRelease(conn);
                     }
                 });
+            } else {
+                reject('ALREADY');
             }
         }).catch(function (error) {
             console.log('find customer Error');
@@ -75,6 +78,21 @@ function findCustomerAPI() {
                     reject(error);
                     return 'error is there fucking';
                 }
+            });
+        });
+    });
+}
+function findAllUser() {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig, function (err, connection) {
+            connection.execute('SELECT * from USERS', [], { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    doRelease(connection);
+                    reject(err);
+                    return 'error';
+                }
+                doRelease(connection);
+                resolve(result.rows);
             });
         });
     });
@@ -116,40 +134,54 @@ function findUserById(id) {
     });
 }
 function findUserByCustomerId(cid) {
-    var conn = void 0;
     return new Promise(function (resolve, reject) {
         oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
-            conn = connection;
-            return connection.execute('SELECT * FROM USERS U JOIN CUSTOMER C ON(U.CUST_ID = C.CUST_ID) WHERE C.CUST_ID = :CUST_ID', { CUST_ID: cid }, { outFormat: oracledb.OBJECT }).then(function (result) {
-                return resolve(result.rows);
-            }).catch(function (error) {
-                console.log('error while findUser', error);
-                reject('error');
+            return connection.execute('SELECT * FROM USERS U JOIN CUSTOMER C ON(U.CUST_ID = C.CUST_ID) WHERE C.CUST_ID = :CUST_ID', { CUST_ID: cid }, { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    doRelease(connection);
+                    console.log(err);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
             });
-        }).then(function () {
-            if (conn) {
-                return conn.close();
-            }
         }).catch(function (error) {
             console.log('inner promise error', error);
         });
     });
 }
 function findCustomerByNameAndPhone(name, phone) {
-    var conn = void 0;
     return new Promise(function (resolve, reject) {
         oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
-            conn = connection;
-            return connection.execute('SELECT * FROM CUSTOMER WHERE USER_NAME = :USER_NAME AND PHONE = :PHONE', { USER_NAME: name, PHONE: phone }, { outFormat: oracledb.OBJECT }).then(function (result) {
-                return resolve(result.rows);
-            }).catch(function (error) {
-                console.log('error while findCustomer', error);
-                reject('error');
+            return connection.execute('SELECT * FROM CUSTOMER WHERE USER_NAME = :USER_NAME AND PHONE = :PHONE', { USER_NAME: name, PHONE: phone }, { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
             });
-        }).then(function () {
-            if (conn) {
-                conn.close();
-            }
+        }).catch(function (error) {
+            console.log('inner promise error', error);
+        });
+    });
+}
+function findNonUserCustomerByNameAndPhone(name, phone) {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            return connection.execute("SELECT * FROM CUSTOMER WHERE USER_NAME = :USER_NAME AND PHONE = :PHONE AND IS_USER = 'N'", { USER_NAME: name, PHONE: phone }, { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
+            });
         }).catch(function (error) {
             console.log('inner promise error', error);
         });
@@ -157,23 +189,85 @@ function findCustomerByNameAndPhone(name, phone) {
 }
 
 function findCustomerInfoOfUserByNameAndPhone(name, phone) {
-    var conn = void 0;
     return new Promise(function (resolve, reject) {
         oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
-            conn = connection;
-            return connection.execute('SELECT * FROM CUSTOMER WHERE USER_NAME = :USER_NAME AND PHONE = :PHONE AND IS_USER = \'Y\'', { USER_NAME: name, PHONE: phone }, { outFormat: oracledb.OBJECT }).then(function (result) {
-                return resolve(result.rows);
-            }).catch(function (error) {
-                console.log('error while findCustomer', error);
-                reject('error');
+            return connection.execute('SELECT * FROM CUSTOMER WHERE USER_NAME = :USER_NAME AND PHONE = :PHONE AND IS_USER = \'Y\'', { USER_NAME: name, PHONE: phone }, { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
             });
-        }).then(function () {
-            if (conn) {
-                conn.close();
-            }
         }).catch(function (error) {
             console.log('inner promise error', error);
         });
+    });
+}
+
+function updatePointOfUser(customerId, point, operator) {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            var sql = void 0;
+            if (operator) {
+                sql = 'UPDATE USERS SET POINT = POINT ' + operator + ' ' + point + ' WHERE CUST_ID = :CUST_ID';
+            } else {
+                sql = 'UPDATE USERS SET POINT = ' + point + ' WHERE CUST_ID = :CUST_ID';
+            }
+            return connection.execute(sql, { CUST_ID: customerId }, { outFormat: oracledb.OBJECT, autoCommit: true }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve('success');
+            });
+        }).catch(function (error) {
+            console.log('inner promise error', error);
+        });
+    });
+}
+function updatePointOfUserExecute(connection, customerId, point, operator) {
+    var sql = void 0;
+    if (operator) {
+        sql = 'UPDATE USERS SET POINT = POINT ' + operator + ' ' + point + ' WHERE CUST_ID = :CUST_ID';
+    } else {
+        sql = 'UPDATE USERS SET POINT = ' + point + ' WHERE CUST_ID = :CUST_ID';
+    }
+    console.log(sql);
+    return connection.execute(sql, { CUST_ID: customerId }, { outFormat: oracledb.OBJECT, autoCommit: false }).then(function (result) {
+        return connection;
+    });
+}
+
+function findNonUserCustomerByCustomerId(customerId) {
+    return new Promise(function (resolve, reject) {
+        oracledb.getConnection(dbConfig.connectConfig).then(function (connection) {
+            return connection.execute('SELECT * FROM CUSTOMER WHERE CUST_ID = :CUST_ID AND IS_USER = \'N\'', { CUST_ID: customerId }, { outFormat: oracledb.OBJECT }, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    doRelease(connection);
+                    reject(err);
+                    return;
+                }
+                doRelease(connection);
+                resolve(result.rows);
+            });
+        }).catch(function (error) {
+            console.log('inner promise error', error);
+        });
+    });
+}
+
+function doRelease(connection) {
+    return connection.close(function (err) {
+        if (err) {
+            console.log(err);
+        }
     });
 }
 module.exports = {
@@ -182,7 +276,12 @@ module.exports = {
     userIdCheck: userIdCheck,
     findUserById: findUserById,
     findCustomerByNameAndPhone: findCustomerByNameAndPhone,
+    findNonUserCustomerByNameAndPhone: findNonUserCustomerByNameAndPhone,
     registerNonUser: registerNonUser,
-    findUserByCustomerId: findUserByCustomerId
+    findUserByCustomerId: findUserByCustomerId,
+    updatePointOfUser: updatePointOfUser,
+    updatePointOfUserExecute: updatePointOfUserExecute,
+    findNonUserCustomerByCustomerId: findNonUserCustomerByCustomerId,
+    findAllUser: findAllUser
 };
 //# sourceMappingURL=customerService.js.map
