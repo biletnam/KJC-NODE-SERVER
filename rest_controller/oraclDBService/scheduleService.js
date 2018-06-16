@@ -66,7 +66,7 @@ function findAll() {
                 const sql = `SELECT S.SCHED_ID, S.SCHED_NO, S.MOVIE_ID, TO_CHAR(S.SCHED_DATE, 'YYYY-MM-DD') AS SCHED_DATE,
                 TO_CHAR(S.PL_START_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_START_TIME,
                  TO_CHAR(S.PL_END_TIME, 'YYYY-MM-DD"T"HH24:MI') AS PL_END_TIME,
-                 S.IS_PUBLIC, M.MOVIE_NAME, S.SELL_RATE,
+                 S.IS_PUBLIC, M.MOVIE_NAME, S.SELL_RATE, S.TOT_REV,
                  S.BRCH_ID, PT.PT_NAME, PT.PT_ID FROM SCHEDULE S JOIN PLAY_TYPE PT ON(S.PT_ID = PT.PT_ID) JOIN MOVIE M ON(M.MOVIE_ID = S.MOVIE_ID)
                  ORDER BY SCHED_ID`;
                 connection.execute(sql, [] , {outFormat: oracledb.OBJECT}, (err, result) => {
@@ -225,11 +225,14 @@ function calculateSellRateAndRegister(SCHED_ID) {
                     return;
                 }
                 const totalLength = bookSeats.length;
-                const bookedLength = bookSeats.filter((b) => b.TCK_ID ? true  : false).length;
+                const soldBookSeats = bookSeats.filter((b) => b.TCK_ID ? true  : false);
+                const bookedLength = soldBookSeats.length;
+                const price = soldBookSeats.map((b) => b.BOOK_PRICE).reduce((prev, next) => { return prev + next}, 0);
+                console.log(price);
                 const sellRate = Number(bookedLength/ totalLength * 100).toFixed(2);
                 oracledb.getConnection(dbConfig.connectConfig)
                     .then((connection) => {
-                        connection.execute('UPDATE SCHEDULE SET SELL_RATE = :SELL_RATE WHERE SCHED_ID = :SCHED_ID', {SELL_RATE: sellRate, SCHED_ID: SCHED_ID},
+                        connection.execute('UPDATE SCHEDULE SET SELL_RATE = :SELL_RATE, TOT_REV = :TOT_REV WHERE SCHED_ID = :SCHED_ID', {SELL_RATE: sellRate, SCHED_ID: SCHED_ID, TOT_REV: price},
                             {autoCommit: true}, (err, result) => {
                                 if(err) {
                                     doRelease(connection);
